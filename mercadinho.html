@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Mercadinho do Seu Zé — Desafio SQL</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700;9..144,900&family=Work+Sans:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#efe4cf;
+    --paper:#fffdf6;
+    --panel:#fff8ea;
+    --ink:#2b2015;
+    --muted:#726250;
+    --awning:#b23a2e;
+    --awning2:#93291f;
+    --cream:#f2e9d8;
+    --chalk:#1f4d3a;
+    --chalk2:#28624a;
+    --yellow:#e8b23c;
+    --yellow2:#f4cf6d;
+    --line:rgba(43,32,21,.16);
+    --shadow:0 18px 40px rgba(43,32,21,.16);
+    --danger:#9c2b2b;
+    --danger-bg:rgba(156,43,43,.08);
+    --ok:#2f6b45;
+    --ok-bg:rgba(47,107,69,.08);
+    --info:#2e5f8a;
+    --info-bg:rgba(46,95,138,.08);
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;
+    font-family:'Work Sans', system-ui, sans-serif;
+    color:var(--ink);
+    background:
+      repeating-linear-gradient(135deg, rgba(43,32,21,.025) 0 2px, transparent 2px 6px),
+      var(--bg);
+    min-height:100vh;
+  }
+  .app{ width:min(1080px, 94vw); margin:0 auto; padding:26px 0 60px; }
+
+  /* ---------- HERO: shop awning ---------- */
+  .hero{
+    position:relative;
+    background:linear-gradient(180deg, var(--awning), var(--awning2));
+    border-radius:6px 6px 0 0;
+    padding:38px 34px 46px;
+    box-shadow:var(--shadow);
+    overflow:visible;
+  }
+  .hero::after{
+    content:"";
+    position:absolute;
+    left:0; right:0; bottom:-17px;
+    height:34px;
+    background:
+      radial-gradient(circle at 17px 0, transparent 17px, var(--awning2) 18px) 0 0/34px 34px repeat-x;
+  }
+  .hero-inner{
+    display:grid;
+    grid-template-columns:1.4fr .6fr;
+    gap:20px;
+    align-items:center;
+    position:relative;
+    z-index:2;
+  }
+  .signboard{
+    display:inline-block;
+    color:var(--yellow2);
+    font-family:'Space Mono', monospace;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:.14em;
+    font-size:.76rem;
+    background:rgba(0,0,0,.18);
+    border:1px dashed rgba(244,207,109,.5);
+    border-radius:999px;
+    padding:6px 12px;
+    margin-bottom:14px;
+  }
+  h1{
+    margin:0;
+    font-family:'Fraunces', serif;
+    font-weight:900;
+    font-size:clamp(2.1rem,5vw,3.6rem);
+    line-height:.98;
+    color:#fff6e5;
+    text-shadow:0 3px 0 rgba(0,0,0,.15);
+  }
+  h1 span{ color:var(--yellow2); }
+  .hero p{
+    color:#f6e6d3;
+    line-height:1.65;
+    max-width:620px;
+    font-size:1rem;
+    margin-top:12px;
+  }
+  .badges{ margin-top:16px; display:flex; flex-wrap:wrap; gap:8px; }
+  .badge{
+    font-family:'Space Mono', monospace;
+    font-size:.74rem;
+    font-weight:700;
+    color:#3a2a12;
+    background:var(--yellow2);
+    border-radius:6px;
+    padding:5px 9px;
+    box-shadow:0 2px 0 rgba(0,0,0,.15);
+  }
+  .hero-art{ display:grid; place-items:center; }
+
+  /* ---------- receipt-style ticket / progress bar ---------- */
+  .ticket{
+    margin:24px auto 20px;
+    background:var(--paper);
+    border:1px solid var(--line);
+    border-radius:2px;
+    padding:16px 20px 18px;
+    box-shadow:var(--shadow);
+    position:sticky;
+    top:10px;
+    z-index:20;
+    font-family:'Space Mono', monospace;
+  }
+  .ticket::before{
+    content:"";
+    display:block;
+    height:0;
+    border-top:2px dashed var(--line);
+    margin-bottom:12px;
+  }
+  .ticket-row{
+    display:flex; justify-content:space-between; align-items:center;
+    font-size:.82rem; color:var(--muted); margin-bottom:9px;
+  }
+  .ticket-row b{ color:var(--ink); }
+  .ticket-store{ font-weight:700; letter-spacing:.04em; }
+  .progress{ height:9px; background:var(--cream); border-radius:999px; overflow:hidden; border:1px solid var(--line); }
+  .progress > div{ height:100%; width:0; background:linear-gradient(90deg, var(--yellow), var(--yellow2)); transition:.35s ease; }
+
+  /* ---------- stages ---------- */
+  .stage{
+    display:none;
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:10px;
+    overflow:hidden;
+    box-shadow:var(--shadow);
+    animation:fade .28s ease;
+  }
+  .stage.active{ display:block; }
+  @keyframes fade{ from{opacity:0; transform:translateY(8px)} to{opacity:1; transform:translateY(0)} }
+
+  .stage-grid{ display:grid; grid-template-columns:.8fr 1.2fr; min-height:480px; }
+
+  .illustration{
+    position:relative;
+    background:
+      radial-gradient(circle at 30% 20%, rgba(232,178,60,.15), transparent 45%),
+      linear-gradient(165deg, var(--chalk), #163a2c);
+    padding:26px;
+    display:flex; flex-direction:column; justify-content:space-between;
+    border-right:1px solid var(--line);
+  }
+  .illustration svg{ width:100%; height:auto; max-height:320px; align-self:center; filter:drop-shadow(0 14px 18px rgba(0,0,0,.3)); }
+  .chapter{
+    font-family:'Space Mono', monospace;
+    font-size:.72rem; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--yellow2); font-weight:700;
+  }
+  .art-caption{ color:#dfe9e2; line-height:1.5; font-size:.88rem; opacity:.85; font-style:italic; }
+
+  .content{ padding:32px 34px; display:flex; flex-direction:column; justify-content:center; }
+  .content h2{ margin:0 0 10px; font-family:'Fraunces', serif; font-weight:800; font-size:clamp(1.5rem,2.6vw,2.15rem); }
+  .story{ color:#3c2f21; line-height:1.7; font-size:1rem; margin:0 0 18px; }
+  .story b{ color:var(--awning2); }
+
+  .quest{
+    border:1px solid rgba(232,178,60,.4);
+    background:rgba(232,178,60,.1);
+    border-left:4px solid var(--yellow);
+    border-radius:8px;
+    padding:16px 18px;
+    margin:10px 0;
+  }
+  .quest strong{ color:var(--awning2); }
+  ul{ padding-left:20px; line-height:1.7; color:#33281c; margin:8px 0; }
+  code{ font-family:'Space Mono', monospace; font-size:.92em; background:#00000010; padding:1px 5px; border-radius:4px; color:#2b2015; }
+
+  .hint{
+    display:none; margin-top:12px;
+    border-left:4px solid var(--info);
+    background:var(--info-bg);
+    border-radius:8px; padding:12px 14px;
+    color:#1c3d56; font-size:.92rem; line-height:1.55;
+  }
+  .hint.show{ display:block; }
+  .hint.danger{ border-left-color:var(--danger); background:var(--danger-bg); color:#5c1a1a; }
+
+  .controls{ margin-top:24px; display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  button{ border:0; cursor:pointer; font:inherit; font-weight:700; border-radius:8px; padding:11px 16px; transition:.16s ease; font-family:'Work Sans',sans-serif; }
+  button:hover{ transform:translateY(-1px); }
+  button:active{ transform:translateY(0); }
+  .primary{ color:#2a1a08; background:linear-gradient(180deg, var(--yellow2), var(--yellow)); box-shadow:0 8px 18px rgba(232,178,60,.3); }
+  .secondary{ color:var(--ink); background:#e9dcc2; border:1px solid var(--line); }
+  .ghost{ color:var(--info); background:var(--info-bg); border:1px solid rgba(46,95,138,.22); }
+  .danger-btn{ color:var(--danger); background:var(--danger-bg); border:1px solid rgba(156,43,43,.25); }
+
+  .done{
+    display:none; margin-top:18px; color:#1d3d28;
+    background:var(--ok-bg); border:1px solid rgba(47,107,69,.25);
+    border-radius:10px; padding:16px; line-height:1.6;
+  }
+  .done.show{ display:block; }
+  .final-box{ text-align:center; padding:26px; }
+  .final-box h3{ margin:0 0 8px; font-family:'Fraunces', serif; font-size:1.4rem; color:var(--ok); }
+  .stamp{
+    display:inline-block; margin-top:10px; padding:6px 14px;
+    border:2px solid var(--ok); border-radius:6px; color:var(--ok);
+    font-family:'Space Mono', monospace; font-weight:700; letter-spacing:.08em;
+    transform:rotate(-3deg);
+  }
+
+  .footer-note{ text-align:center; color:var(--muted); font-size:.82rem; margin-top:18px; font-family:'Space Mono', monospace; }
+
+  @media (max-width:820px){
+    .hero-inner,.stage-grid{ grid-template-columns:1fr; }
+    .illustration{ border-right:0; border-bottom:1px solid var(--line); min-height:280px; }
+    .content{ padding:24px; }
+    .ticket{ top:6px; }
+  }
+</style>
+</head>
+<body>
+<main class="app">
+
+  <section class="hero">
+    <div class="hero-inner">
+      <div>
+        <div class="signboard">🛒 Projeto prático · Banco de Dados</div>
+        <h1>Mercadinho <span>do Seu Zé</span></h1>
+        <p>
+          Seu Zé é amigo de infância do seu avô, sempre fia um salgadinho quando o dinheiro
+          tá curto e jura que "computador é modinha". Depois que o gato da loja, o Fiscal,
+          virou uma caneca de café em cima do caderninho de fiado, ele finalmente aceitou
+          modernizar o comércio — e contratou você. A cada etapa, uma situação real do
+          balcão vira uma tarefa de SQL.
+        </p>
+        <div class="badges">
+          <span class="badge">CREATE TABLE</span>
+          <span class="badge">INSERT</span>
+          <span class="badge">UPDATE</span>
+          <span class="badge">DELETE</span>
+          <span class="badge">ALTER TABLE</span>
+          <span class="badge">FOREIGN KEY</span>
+        </div>
+      </div>
+      <div class="hero-art">
+        <svg viewBox="0 0 220 220" width="190">
+          <rect x="30" y="60" width="160" height="130" rx="6" fill="#fff8ea"/>
+          <rect x="30" y="60" width="160" height="26" fill="#1f4d3a"/>
+          <text x="110" y="78" text-anchor="middle" font-family="Space Mono, monospace" font-size="12" font-weight="700" fill="#f4cf6d">MERCADINHO</text>
+          <rect x="46" y="100" width="52" height="34" rx="3" fill="#e8b23c"/>
+          <rect x="122" y="100" width="52" height="34" rx="3" fill="#93291f"/>
+          <rect x="46" y="144" width="52" height="34" rx="3" fill="#2e5f8a"/>
+          <rect x="122" y="144" width="52" height="34" rx="3" fill="#1f4d3a"/>
+          <circle cx="110" cy="40" r="26" fill="#fff8ea"/>
+          <text x="110" y="47" text-anchor="middle" font-size="24">👴</text>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <section class="ticket">
+    <div class="ticket-row">
+      <span class="ticket-store">CUPOM · MERCADINHO DO SEU ZÉ</span>
+      <span>NÃO É DOC. FISCAL</span>
+    </div>
+    <div class="ticket-row">
+      <span>Etapa do sistema</span>
+      <b><span id="currentStep">1</span>/<span id="totalSteps"></span></b>
+    </div>
+    <div class="progress"><div id="progressBar"></div></div>
+  </section>
+
+  <section id="stages">
+
+    <!-- 1 -->
+    <article class="stage active">
+      <div class="stage-grid">
+        <div class="illustration">
+          <div class="chapter">Capítulo 1</div>
+          <svg viewBox="0 0 400 300">
+            <rect x="70" y="150" width="260" height="110" rx="8" fill="#fff8ea" opacity=".08" stroke="#f4cf6d" stroke-width="3"/>
+            <path d="M85 150 L115 90 H285 L315 150 Z" fill="#e8b23c"/>
+            <rect x="120" y="150" width="30" height="110" fill="#93291f" opacity=".85"/>
+            <rect x="180" y="150" width="30" height="110" fill="#fff8ea" opacity=".85"/>
+            <rect x="240" y="150" width="30" height="110" fill="#93291f" opacity=".85"/>
+            <text x="200" y="255" text-anchor="middle" font-family="Space Mono, monospace" font-size="18" fill="#f4cf6d" font-weight="700">NOVO SISTEMA</text>
+          </svg>
+          <div class="art-caption">"Café requentado é tradição da casa. Caderninho encharcado, nem tanto" — Seu Zé.</div>
+        </div>
+        <div class="content">
+          <h2>☕ O dia em que o caderninho afundou no café</h2>
+          <p class="story">
+            O gato Fiscal decidiu que a caneca de café do Seu Zé era travesseiro, e o
+            caderninho de fiado virou uma poça ilegível embaixo dela. Seu Zé decidiu, meio
+            a contragosto, que é hora de ter um banco de dados de verdade — <b>desde que
+            continue funcionando mesmo sem internet</b>.
+          </p>
+          <div class="quest">
+            <strong>Sua missão:</strong>
+            <ul>
+              <li>Crie um banco chamado <code>mercadinho_do_ze</code>.</li>
+              <li>Selecione esse banco para começar a trabalhar nele.</li>
+            </ul>
+          </div>
+          <button class="ghost" onclick="toggleHint(this)">💡 Mostrar dica</button>
+          <div class="hint">Você vai precisar de <code>CREATE DATABASE</code> e <code>USE</code>.</div>
+          <div class="controls">
+            <button class="primary" onclick="nextStage()">Banco criado →</button>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- 2 -->
+    <article class="stage">
+      <div class="stage-grid">
+        <div class="illustration">
+          <div class="chapter">Capítulo 2</div>
+          <svg viewBox="0 0 400 300">
+            <rect x="60" y="60" width="280" height="200" rx="8" fill="#fff8ea" opacity=".06"/>
+            <rect x="80" y="80" width="240" height="30" rx="4" fill="#e8b23c"/>
+            <rect x="80" y="120" width="240" height="30" rx="4" fill="#2e5f8a" opacity=".7"/>
+            <rect x="80" y="160" width="240" height="30" rx="4" fill="#93291f" opacity=".7"/>
+            <rect x="80" y="200" width="240" height="30" rx="4" fill="#1f4d3a" opacity=".9"/>
+            <text x="200" y="100" text-anchor="middle" font-family="Space Mono, monospace" font-size="13" fill="#2b2015" font-weight="700">CERVEJA</text>
+            <text x="200" y="140" text-anchor="middle" font-family="Space Mono, monospace" font-size="13" fill="#f4cf6d">COXINHA</text>
+            <text x="200" y="180" text-anchor="middle" font-family="Space Mono, monospace" font-size="13" fill="#f4cf6d">REFRIGERANTE</text>
+            <text x="200" y="220" text-anchor="middle" font-family="Space Mono, monospace" font-size="13" fill="#f4cf6d">PÃO DE FORMA</text>
+          </svg>
+          <div class="art-caption">A prateleira tem produto, mas o sistema ainda não sabe disso.</div>
+        </div>
+        <div class="content">
+          <h2>🧃 As prateleiras precisam de tabela</h2>
+          <p class="story">
+            Antes de vender qualquer coisa, o mercadinho precisa saber <b>o que</b> tem
+            pra vender.
+          </p>
+          <div class="quest">
+            <strong>Crie a tabela <code>produtos</code> com:</strong>
+            <ul>
+              <li><code>id_produto</code>, <code>nome</code>, <code>categoria</code>, <code>preco</code>, <code>estoque</code></li>
+            </ul>
+            <strong>Regras:</strong>
+            <ul>
+              <li>ID como chave primária e automática.</li>
+              <li>Nome obrigatório.</li>
+              <li>Categoria com até 50 caracteres.</li>
+              <li>Preço com casas decimais (afinal, ninguém cobra R$ 3 redondo de coxinha).</li>
+              <li>Estoque como número inteiro.</li>
+            </ul>
+          </div>
+          <button class="ghost" onclick="toggleHint(this)">💡 Mostrar dica</button>
+          <div class="hint">
+            Pense em <code>INT</code>, <code>VARCHAR</code> e <code>DECIMAL</code>, além de
+            <code>PRIMARY KEY</code>, <code>AUTO_INCREMENT</code> e <code>NOT NULL</code>.
+          </div>
+          <div class="controls">
+            <button class="secondary" onclick="prevStage()">← Voltar</button>
+            <button class="primary" onclick="nextStage()">Tabela criada →</button>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- 3 -->
+    <article class="stage">
+      <div class="stage-grid">
+        <div class="illustration">
+          <div class="chapter">Capítulo 3</div>
+          <svg viewBox="0 0 400 300">
+            <rect x="90" y="70" width="220" height="160" rx="10" fill="#fff8ea" opacity=".08" stroke="#f4cf6d" stroke-width="2"/>
+            <circle cx="200" cy="130" r="34" fill="#e8b23c"/>
+            <text x="200" y="140" text-anchor="middle" font-size="26">🧓</text>
+            <rect x="140" y="190" width="120" height="18" rx="4" fill="#f4cf6d" opacity=".8"/>
+            <text x="200" y="203" text-anchor="middle" font-family="Space Mono, monospace" font-size="11" fill="#2b2015">DONA MARLENE</text>
+          </svg>
+          <div class="art-caption">Cliente antigo é praticamente sócio, só que sem lucro.</div>
+        </div>
+        <div class="content">
+          <h2>👥 Quem compra fiado precisa existir no sistema</h2>
+          <p class="story">
+            Tem gente que compra há vinte anos ali. Seu Zé quer parar de decorar quem deve
+            o quê e passar isso pro computador — <b>mas sem perder o controle do fiado</b>.
+          </p>
+          <div class="quest">
+            <strong>Crie a tabela <code>clientes</code>:</strong>
+            <ul>
+              <li><code>id_cliente</code>, <code>nome</code>, <code>telefone</code>, <code>saldo_fiado</code></li>
+            </ul>
+            O <code>saldo_fiado</code> deve começar em <code>0</code> quando ninguém informar valor.
+          </div>
+          <button class="ghost" onclick="toggleHint(this)">💡 Mostrar dica</button>
+          <div class="hint">Uma coluna pode ter um valor padrão com <code>DEFAULT 0</code>.</div>
+          <div class="controls">
+            <button class="secondary" onclick="prevStage()">← Voltar</button>
+            <button class="primary" onclick="nextStage()">Clientes cadastrados →</button>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- 4 -->
+    <article class="stage">
+      <div class="stage-grid">
+        <div class="illustration">
+          <div class="chapter">Capítulo 4</div>
+          <svg viewBox="0 0 400 300">
+            <rect x="70" y="90" width="260" height="150" rx="10" fill="#fff8ea" opacity=".07"/>
+            <text x="200" y="130" text-anchor="middle" font-family="Space Mono, monospace" font-size="15" fill="#f4cf6d" font-weight="700">CUPOM Nº 000124</text>
+            <path d="M100 150 H300 M100 175 H260 M100 200 H280" stroke="#f4cf6d" stroke-width="4" stroke-linecap="round" opacity=".6"/>
+            <text x="200" y="228" text-anchor="middle" font-family="Space Mono, monospace" font-size="12" fill="#e8b23c">TOTAL: R$ 27,40</text>
+          </svg>
+          <div class="art-caption">Toda venda precisa de data e de um dono — o cliente.</div>
+        </div>
+        <div class="content">
+          <h2>🧾 O cupom da venda</h2>
+          <p class="story">
+            Cada compra precisa virar um registro: quem comprou e quando. Depois a gente
+            detalha o que foi levado.
+          </p>
+          <div class="quest">
+            <strong>Crie a tabela <code>vendas</code>:</strong>
+            <ul>
+              <li><code>id_venda</code>, <code>id_cliente</code>, <code>data_venda</code></li>
+            </ul>
+            <code>id_cliente</code> deve ser uma <strong>FOREIGN KEY</strong> apontando pra
+            <code>clientes(id_cliente)</code>.
+          </div>
+          <button class="ghost" onclick="toggleHint(this)">💡 Mostrar dica</button>
+          <div class="hint">Use <code>DATE</code> para a data e crie a <code>FOREIGN KEY</code> no final do <code>CREATE TABLE</code>.</div>
+          <div class="controls">
+            <button class="secondary" onclick="prevStage()">← Voltar</button>
+            <button class="primary" onclick="nextStage()">Vendas prontas →</button>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- 5 -->
+    <article class="stage">
+      <div class="stage-grid">
+        <div class="illustration">
+          <div class="chapter">Capítulo 5</div>
+          <svg viewBox="0 0 400 300">
+            <circle cx="130" cy="150" r="55" fill="#2e5f8a" opacity=".85"/>
+            <circle cx="270" cy="150" r="55" fill="#93291f" opacity=".85"/>
+            <rect x="170" y="132" width="60" height="36" rx="18" fill="#e8b23c"/>
+            <text x="130" y="158" text-anchor="middle" fill="#fff" font-size="20" font-weight="900" font-family="Space Mono, monospace">VDA</text>
+            <text x="270" y="158" text-anchor="middle" fill="#fff" font-size="20" font-weight="900" font-family="Space Mono, monospace">PROD</text>
+            <text x="200" y="240" text-anchor="middle" font-family="Space Mono, monospace" font-size="13" fill="#f4cf6d">2× FOREIGN KEY</text>
+          </svg>
+          <div class="art-caption">Uma venda pode ter vários itens, e um produto aparece em várias vendas.</div>
+        </div>
+        <div class="content">
+          <h2>🔗 O que foi levado em cada venda</h2>
+          <p class="story">
+            Falta o detalhe: <b>quais</b> produtos e <b>quantos</b> em cada cupom. Uma venda
+            pode ter coxinha, guaraná e uma cerveja "que é pra hoje mesmo".
+          </p>
+          <div class="quest">
+            <strong>Crie a tabela <code>itens_venda</code>:</strong>
+            <ul>
+              <li><code>id_item</code>, <code>id_venda</code>, <code>id_produto</code>, <code>quantidade</code></li>
+            </ul>
+            As duas últimas colunas devem ser <strong>FOREIGN KEYS</strong>.
+          </div>
+          <button class="ghost" onclick="toggleHint(this)">💡 Mostrar dica</button>
+          <div class="hint">Crie todas as colunas primeiro, depois as duas <code>FOREIGN KEY</code> no final do comando.</div>
+          <div class="controls">
+            <button class="secondary" onclick="prevStage()">← Voltar</button>
+            <button class="primary" onclick="nextStage()">Estrutura pronta →</button>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- 6 -->
+    <article class="stage">
+      <div class="stage-grid">
+        <div class="illustration">
+          <div class="chapter">Evento 1 · Entrega</div>
+          <svg viewBox="0 0 400 300">
+            <rect x="60" y="140" width="160" height="90" rx="6" fill="#e8b23c"/>
+            <rect x="220" y="110" width="90" height="120" rx="6" fill="#93291f"/>
+            <circle cx="100" cy="245" r="16" fill="#2b2015"/>
+            <circle cx="260" cy="245" r="16" fill="#2b2015"/>
+            <rect x="60" y="115" width="250" height="20" fill="#fff8ea" opacity=".85"/>
+            <text x="185" y="130" text-anchor="middle" font-family="Space Mono, monospace" font-size="11" fill="#2b2015">CAMINHÃO DO FORNECEDOR</text>
+          </svg>
+          <div class="art-caption">O motorista sempre chega na hora do almoço. Sempre.</div>
+        </div>
+        <div class="content">
+          <h2>🚚 Chegou a entrega</h2>
+          <p class="story">
+            O fornecedor descarregou a mercadoria da semana. Hora de colocar tudo no
+            sistema pela primeira vez.
+          </p>
+          <div class="quest">
+            <strong>Insira em <code>produtos</code> pelo menos 4 itens</strong>, por exemplo:
+            <ul>
+              <li>Cerveja Lata 350ml — Bebidas — R$ 4,50 — estoque 120</li>
+              <li>Coxinha Congelada — Salgados — R$ 3,20 — estoque 60</li>
+              <li>Refrigerante 2L — Bebidas — R$ 8,90 — estoque 40</li>
+              <li>Pão de Forma — Padaria — R$ 7,00 — estoque 25</li>
+            </ul>
+          </div>
+          <button class="ghost" onclick="toggleHint(this)">💡 Mostrar dica</button>
+          <div class="hint">Use <code>INSERT INTO produtos (...) VALUES (...)</code>. Você pode inserir várias linhas num só comando, separando por vírgula.</div>
+          <div class="controls">
+            <button class="secondary" onclick="prevStage()">← Voltar</button>
+            <button class="primary" onclick="nextStage()">Estoque abastecido →</button>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- 7 -->
+    <article class="stage">
+      <div class="stage-grid">
+        <div class="illustration">
+          <div class="chapter">Evento 2 · Fidelidade</div>
+          <svg viewBox="0 0 400 300">
+            <circle cx="130" cy="150" r="46" fill="#e8b23c"/>
+            <circle cx="270" cy="150" r="46" fill="#2e5f8a"/>
+            <text x="130" y="160" text-anchor="middle" font-size="30">🧓</text>
+            <text x="270" y="160" text-anchor="middle" font-size="30">👨</text>
+            <text x="130" y="215" text-anchor="middle" font-family="Space Mono, monospace" font-size="12" fill="#f4cf6d">DONA MARLENE</text>
+            <text x="270" y="215" text-anchor="middle" font-family="Space Mono, monospace" font-size="12" fill="#f4cf6d">SEU CHICO</text>
+          </svg>
+          <div class="art-caption">Clientes de longa data merecem cadastro — e um pouco de paciência.</div>
+        </div>
+        <div class="content">
+          <h2>🤝 Os clientes de sempre</h2>
+          <p class="story">
+            Dona Marlene compra fiado desde antes do mercadinho ter placa. Seu Chico só
+            aparece quando o time joga e a geladeira dele "deu problema".
+          </p>
+          <div class="quest">
+            <strong>Insira em <code>clientes</code> pelo menos 3 pessoas</strong>, incluindo:
+            <ul>
+              <li>Dona Marlene — telefone e <code>saldo_fiado</code> de R$ 45,00</li>
+              <li>Seu Chico — telefone e <code>saldo_fiado</code> de R$ 0,00 (por enquanto)</li>
+              <li>Mais um cliente de sua escolha</li>
+            </ul>
+          </div>
+          <button class="ghost" onclick="toggleHint(this)">💡 Mostrar dica</button>
+          <div class="hint">Se você não informar <code>saldo_fiado</code>, ele assume o <code>DEFAULT</code> que você definiu lá na criação da tabela.</div>
+          <div class="controls">
+            <button class="secondary" onclick="prevStage()">← Voltar</button>
+            <button class="primary" onclick="nextStage()">Clientes cadastrados →</button>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- 8 -->
+    <article class="stage">
+      <div class="stage-grid">
+        <div class="illustration">
+          <div class="chapter">Evento 3 · Primeira venda</div>
+          <svg viewBox="0 0 400 300">
+            <rect x="90" y="80" width="220" height="170" rx="8" fill="#fff8ea" opacity=".08"/>
+            <text x="200" y="115" text-anchor="middle" font-family="Space Mono, monospace" font-size="14" fill="#f4cf6d" font-weight="700">1ª VENDA DO SISTEMA</text>
+            <text x="200" y="150" text-anchor="middle" font-family="Space Mono, monospace" font-size="12" fill="#e8b23c">2× Cerveja Lata 350ml</text>
+            <text x="200" y="175" text-anchor="middle" font-family="Space Mono, monospace" font-size="12" fill="#e8b23c">1× Coxinha Congelada</text>
+            <path d="M120 200 H280" stroke="#f4cf6d" stroke-width="2" stroke-dasharray="6 5"/>
+            <text x="200" y="225" text-anchor="middle" font-family="Space Mono, monospace" font-size="13" fill="#fff8ea">Cliente: Seu Chico</text>
+          </svg>
+          <div class="art-caption">Batizando o sistema novo com uma venda de verdade.</div>
+        </div>
+        <div class="content">
+          <h2>🎉 A primeira venda oficial</h2>
+          <p class="story">
+            Seu Chico chega, pega duas cervejas e uma coxinha, e pergunta desconfiado:
+            "isso aí vai anotar certinho mesmo?". Só tem um jeito de provar.
+          </p>
+          <div class="quest">
+            <strong>Registre a venda:</strong>
+            <ul>
+              <li>Um <code>INSERT</code> em <code>vendas</code> para o Seu Chico, com a data de hoje.</li>
+              <li>Dois <code>INSERT</code> em <code>itens_venda</code>: 2 cervejas e 1 coxinha, ligados a essa venda.</li>
+            </ul>
+          </div>
+          <button class="ghost" onclick="toggleHint(this)">💡 Mostrar dica</button>
+          <div class="hint">
+            Você vai precisar saber o <code>id_venda</code> gerado para usar nos itens.
+            Em muitos SGBDs isso pode ser consultado logo após o <code>INSERT</code>.
+          </div>
+          <div class="controls">
+            <button class="secondary" onclick="prevStage()">← Voltar</button>
+            <button class="primary" onclick="nextStage()">Venda registrada →</button>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- 9 -->
+    <article class="stage">
+      <div class="stage-grid">
+        <div class="illustration">
+          <div class="chapter">Evento 4 · Sábado de jogo</div>
+          <svg viewBox="0 0 400 300">
+            <rect x="80" y="80" width="240" height="160" rx="8" fill="#fff8ea" opacity=".06"/>
+            <circle cx="200" cy="140" r="40" fill="#e8b23c"/>
+            <text x="200" y="150" text-anchor="middle" font-size="30">⚽</text>
+            <path d="M110 210 H290" stroke="#f4cf6d" stroke-width="3" stroke-dasharray="4 4"/>
+            <text x="200" y="232" text-anchor="middle" font-family="Space Mono, monospace" font-size="12" fill="#93291f">CERVEJA: ESTOQUE CRÍTICO</text>
+          </svg>
+          <div class="art-caption">Dia de jogo do Brasil esvazia a geladeira em minutos.</div>
+        </div>
+        <div class="content">
+          <h2>⚽ O estoque de cerveja despencou</h2>
+          <p class="story">
+            Depois de um sábado de jogo, sobraram só <b>18 latas</b> de cerveja no estoque.
+            O sistema ainda mostra o número antigo — hora de corrigir.
+          </p>
+          <div class="quest">
+            <strong>Atualize:</strong>
+            <p>O <code>estoque</code> da Cerveja Lata 350ml deve passar para <code>18</code>.</p>
+          </div>
+          <button class="ghost" onclick="toggleHint(this)">💡 Mostrar dica</button>
+          <div class="hint">Use <code>UPDATE produtos SET estoque = ... WHERE ...</code> — e nunca esqueça o <code>WHERE</code>, ou o mercadinho inteiro fica sem cerveja.</div>
+          <div class="controls">
+            <button class="secondary" onclick="prevStage()">← Voltar</button>
+            <button class="primary" onclick="nextStage()">Estoque corrigido →</button>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- 10 -->
+    <article class="stage">
+      <div class="stage-grid">
+        <div class="illustration">
+          <div class="chapter">Evento 5 · Promoção</div>
+          <svg viewBox="0 0 400 300">
+            <circle cx="200" cy="140" r="70" fill="#e8b23c"/>
+            <text x="200" y="130" text-anchor="middle" font-family="Space Mono, monospace" font-size="16" fill="#2b2015" font-weight="900">-30%</text>
+            <text x="200" y="160" text-anchor="middle" font-family="Space Mono, monospace" font-size="12" fill="#2b2015">COXINHA</text>
+            <text x="200" y="240" text-anchor="middle" font-family="Space Mono, monospace" font-size="12" fill="#f4cf6d">VALIDADE PRÓXIMA</text>
+          </svg>
+          <div class="art-caption">Congelado perto do vencimento vira "promoção imperdível".</div>
+        </div>
+        <div class="content">
+          <h2>🏷️ Promoção relâmpago</h2>
+          <p class="story">
+            Seu Zé percebeu que o lote de coxinhas está perto do vencimento. Decisão rápida:
+            baixar o preço antes que vire prejuízo total.
+          </p>
+          <div class="quest">
+            <strong>Atualize:</strong>
+            <p>O <code>preco</code> da Coxinha Congelada deve passar para <code>2,25</code>.</p>
+          </div>
+          <button class="ghost" onclick="toggleHint(this)">💡 Mostrar dica</button>
+          <div class="hint">Mesma lógica do <code>UPDATE</code> anterior, mudando a coluna e a condição.</div>
+          <div class="controls">
+            <button class="secondary" onclick="prevStage()">← Voltar</button>
+            <button class="primary" onclick="nextStage()">Preço atualizado →</button>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- 11 -->
+    <article class="stage">
+      <div class="stage-grid">
+        <div class="illustration">
+          <div class="chapter">Evento 6 · Acerto de contas</div>
+          <svg viewBox="0 0 400 300">
+            <circle cx="200" cy="130" r="46" fill="#e8b23c"/>
+            <text x="200" y="140" text-anchor="middle" font-size="30">🧓</text>
+            <rect x="130" y="200" width="140" height="40" rx="8" fill="#2f6b45"/>
+            <text x="200" y="225" text-anchor="middle" font-family="Space Mono, monospace" font-size="13" fill="#fff8ea" font-weight="700">QUITADO</text>
+          </svg>
+          <div class="art-caption">Aposentadoria caiu, e Dona Marlene não deve mais nada — por enquanto.</div>
+        </div>
+        <div class="content">
+          <h2>💰 Dona Marlene pagou o fiado</h2>
+          <p class="story">
+            A aposentadoria caiu na conta e ela apareceu com o dinheiro certinho, ainda
+            reclamando que "antigamente isso era tudo de cabeça, sem essas telas".
+          </p>
+          <div class="quest">
+            <strong>Atualize:</strong>
+            <p>O <code>saldo_fiado</code> da Dona Marlene deve voltar para <code>0</code>.</p>
+          </div>
+          <button class="ghost" onclick="toggleHint(this)">💡 Mostrar dica</button>
+          <div class="hint">Filtre pelo <code>id_cliente</code> ou pelo <code>nome</code> dela no <code>WHERE</code>.</div>
+          <div class="controls">
+            <button class="secondary" onclick="prevStage()">← Voltar</button>
+            <button class="primary" onclick="nextStage()">Conta zerada →</button>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- 12 -->
+    <article class="stage">
+      <div class="stage-grid">
+        <div class="illustration">
+          <div class="chapter">Evento 7 · Descarte</div>
+          <svg viewBox="0 0 400 300">
+            <rect x="140" y="90" width="120" height="150" rx="8" fill="#fff8ea" opacity=".85"/>
+            <path d="M150 130 H250 M150 160 H250 M150 190 H230" stroke="#2b2015" stroke-width="5" stroke-linecap="round"/>
+            <circle cx="290" cy="150" r="40" fill="#9c2b2b"/>
+            <text x="290" y="160" text-anchor="middle" font-size="22" fill="#fff">☠️</text>
+          </svg>
+          <div class="art-caption">Nem o rótulo mais bonito salva um pão vencido.</div>
+        </div>
+        <div class="content">
+          <h2>🥖 O pão de forma venceu</h2>
+          <p class="story">
+            Sobraram dois pães de forma que ninguém quis nem no desconto. A vigilância
+            sanitária não brinca — melhor tirar do sistema e da prateleira.
+          </p>
+          <div class="quest">
+            <strong>Remova:</strong>
+            <p>O produto Pão de Forma deve ser excluído da tabela <code>produtos</code>.</p>
+          </div>
+          <button class="ghost" onclick="toggleHint(this)">💡 Mostrar dica</button>
+          <div class="hint">Use <code>DELETE FROM produtos WHERE ...</code> apontando exatamente para esse produto.</div>
+          <div class="controls">
+            <button class="secondary" onclick="prevStage()">← Voltar</button>
+            <button class="primary" onclick="nextStage()">Produto removido →</button>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- 13 -->
+    <article class="stage">
+      <div class="stage-grid">
+        <div class="illustration">
+          <div class="chapter">Evento 8 · Fiscalização</div>
+          <svg viewBox="0 0 400 300">
+            <rect x="70" y="70" width="260" height="170" rx="8" fill="#fff8ea" opacity=".06"/>
+            <path d="M100 110 H300 M100 145 H300 M100 180 H260" stroke="#f4cf6d" stroke-width="6" stroke-linecap="round" opacity=".7"/>
+            <circle cx="310" cy="210" r="34" fill="#e8b23c"/>
+            <text x="310" y="218" text-anchor="middle" font-size="18">📋</text>
+          </svg>
+          <div class="art-caption">Três pedidos pequenos, um único boletim de ocorrência de estagiário.</div>
+        </div>
+        <div class="content">
+          <h2>📐 Ajustes que a fiscalização pediu</h2>
+          <p class="story">
+            Um fiscal passou no mercadinho e apontou três coisas para arrumar antes da
+            próxima visita. Nenhuma tabela precisa ser recriada — só ajustada.
+          </p>
+          <div class="quest">
+            <strong>Sem apagar nenhuma tabela, faça:</strong>
+            <ul>
+              <li>Adicione a coluna <code>validade</code> (data) em <code>produtos</code>.</li>
+              <li>Renomeie a coluna <code>telefone</code> de <code>clientes</code> para <code>whatsapp</code> — "ninguém mais liga, só manda mensagem", disse o fiscal.</li>
+              <li>Aumente a coluna <code>categoria</code> de <code>produtos</code> para até <strong>80 caracteres</strong>, porque "Bebidas Alcoólicas Artesanais Importadas" não coube.</li>
+            </ul>
+          </div>
+          <button class="ghost" onclick="toggleHint(this)">💡 Mostrar dica</button>
+          <div class="hint">
+            Tudo isso é <code>ALTER TABLE</code>: <code>ADD COLUMN</code> para a nova coluna,
+            <code>RENAME COLUMN ... TO ...</code> para o telefone, e <code>MODIFY COLUMN</code>
+            para aumentar o tamanho da categoria.
+          </div>
+          <div class="controls">
+            <button class="secondary" onclick="prevStage()">← Voltar</button>
+            <button class="primary" onclick="nextStage()">Ajustes feitos →</button>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- 14 -->
+    <article class="stage">
+      <div class="stage-grid">
+        <div class="illustration">
+          <div class="chapter">Evento 9 · Estagiário</div>
+          <svg viewBox="0 0 400 300">
+            <rect x="90" y="80" width="220" height="150" rx="8" fill="#fff8ea" opacity=".06"/>
+            <path d="M120 120 H280 M120 150 H280 M120 180 H240" stroke="#f4cf6d" stroke-width="6" stroke-linecap="round" opacity=".5"/>
+            <circle cx="290" cy="205" r="32" fill="#9c2b2b"/>
+            <text x="290" y="213" text-anchor="middle" font-size="26" fill="#fff">!</text>
+          </svg>
+          <div class="art-caption">"Eu jurava que tinha ligado essa coluna" — o estagiário, sempre.</div>
+        </div>
+        <div class="content">
+          <h2>🧑‍💻 A FK que ficou esquecida</h2>
+          <p class="story">
+            Na revisão do sistema, vocês notam que a coluna <code>id_produto</code> em
+            <code>itens_venda</code> existe, mas nunca ganhou uma <strong>FOREIGN KEY</strong>
+            de verdade — alguém só criou a coluna e seguiu em frente.
+          </p>
+          <div class="quest">
+            <strong>Corrija sem recriar a tabela:</strong>
+            <p>
+              Adicione uma constraint chamada <code>fk_item_produto</code> ligando
+              <code>id_produto</code> em <code>itens_venda</code> a
+              <code>produtos(id_produto)</code>.
+            </p>
+          </div>
+          <button class="ghost" onclick="toggleHint(this)">💡 Mostrar dica</button>
+          <div class="hint">Use <code>ALTER TABLE ... ADD CONSTRAINT ... FOREIGN KEY (...) REFERENCES ...</code>.</div>
+          <div class="controls">
+            <button class="secondary" onclick="prevStage()">← Voltar</button>
+            <button class="primary" onclick="nextStage()">FK corrigida →</button>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- 15 -->
+    <article class="stage">
+      <div class="stage-grid">
+        <div class="illustration">
+          <div class="chapter">Fechamento do mês</div>
+          <svg viewBox="0 0 400 300">
+            <rect x="90" y="70" width="220" height="170" rx="8" fill="#fff8ea" opacity=".06"/>
+            <path d="M120 110 H280 M120 145 H280 M120 180 H240" stroke="#f4cf6d" stroke-width="6" stroke-linecap="round" opacity=".55"/>
+            <path d="M100 245 L300 245" stroke="#9c2b2b" stroke-width="4" stroke-dasharray="10 6"/>
+            <text x="200" y="270" text-anchor="middle" font-family="Space Mono, monospace" font-size="12" fill="#9c2b2b">ZONA DE PERIGO</text>
+          </svg>
+          <div class="art-caption">Comando perigoso: escrever é livre, executar sem pensar é outra história.</div>
+        </div>
+        <div class="content">
+          <h2>🧹 Faxina de fim de mês</h2>
+          <p class="story">
+            Seu Zé quer o sistema limpo antes do balanço. E, claro, ainda faz aquela pergunta
+            perigosa: "e se eu quiser apagar tudo, como faria?".
+          </p>
+          <div class="quest">
+            <strong>Parte A — Venda cancelada:</strong>
+            <p>Seu Chico desistiu de um item da venda de hoje. Remova apenas essa linha de <code>itens_venda</code> (não a venda inteira).</p>
+            <strong>Parte B — Tabela de teste:</strong>
+            <p>Existe uma tabela temporária chamada <code>testes_estagiario</code> usada só para treino. Apague-a de vez.</p>
+            <strong>Parte C — Só no papel:</strong>
+            <p>Escreva o comando que apagaria o banco <code>mercadinho_do_ze</code> inteiro — <strong>mas não execute</strong>. É só para o Seu Zé ver e assinar embaixo, autorizando (ou não).</p>
+          </div>
+          <button class="danger-btn" onclick="toggleHint(this)">☠️ Mostrar alerta</button>
+          <div class="hint danger">
+            <strong>Cuidado:</strong> <code>DELETE</code> sem <code>WHERE</code>, <code>DROP TABLE</code> e
+            <code>DROP DATABASE</code> não pedem confirmação — eles simplesmente obedecem.
+            Releia o comando antes de apertar Enter, sempre.
+          </div>
+          <div class="controls">
+            <button class="secondary" onclick="prevStage()">← Voltar</button>
+            <button class="primary" onclick="finishQuest()">Fechar o caixa 🏁</button>
+          </div>
+          <div class="done" id="doneBox">
+            <div class="final-box">
+              <h3>Sistema entregue!</h3>
+              <p>
+                Você praticou <strong>CREATE DATABASE</strong>, <strong>CREATE TABLE</strong>,
+                <strong>FOREIGN KEY</strong>, <strong>INSERT</strong>, <strong>UPDATE</strong>,
+                <strong>DELETE</strong>, <strong>ALTER TABLE</strong> (<code>ADD COLUMN</code>,
+                <code>RENAME COLUMN</code>, <code>MODIFY COLUMN</code>, <code>ADD CONSTRAINT</code>),
+                <code>RENAME TABLE</code> e <strong>DROP</strong>.
+              </p>
+              <p>Agora mostre seu script SQL completo para o professor — e, se der, leve um salgadinho pro Seu Zé.</p>
+              <div class="stamp">MISSÃO APROVADA</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+
+  </section>
+
+  <div class="footer-note">Mercadinho do Seu Zé · Empório &amp; Fiado desde 1978</div>
+</main>
+
+<script>
+  const stages = [...document.querySelectorAll('.stage')];
+  const total = stages.length;
+  let current = 0;
+
+  document.getElementById('totalSteps').textContent = total;
+
+  function updateUI(){
+    stages.forEach((stage, index) => stage.classList.toggle('active', index === current));
+    document.getElementById('currentStep').textContent = current + 1;
+    document.getElementById('progressBar').style.width = ((current + 1) / total * 100) + '%';
+    window.scrollTo({top: 0, behavior: 'smooth'});
+  }
+
+  function nextStage(){
+    if(current < total - 1){ current++; updateUI(); }
+  }
+  function prevStage(){
+    if(current > 0){ current--; updateUI(); }
+  }
+  function toggleHint(btn){
+    const hint = btn.nextElementSibling;
+    hint.classList.toggle('show');
+    const isDanger = btn.classList.contains('danger-btn');
+    btn.textContent = hint.classList.contains('show')
+      ? (isDanger ? '🙈 Esconder alerta' : '🙈 Esconder dica')
+      : (isDanger ? '☠️ Mostrar alerta' : '💡 Mostrar dica');
+  }
+  function finishQuest(){
+    document.getElementById('doneBox').classList.add('show');
+    document.getElementById('progressBar').style.width = '100%';
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if(e.key === 'ArrowRight') nextStage();
+    if(e.key === 'ArrowLeft') prevStage();
+  });
+
+  updateUI();
+</script>
+</body>
+</html>
